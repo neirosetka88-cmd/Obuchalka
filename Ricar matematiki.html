@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Рыцарь vs Зомби: новая сложность и меч-вихрь</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a472a 0%, #0a1f0a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI Emoji', cursive, sans-serif;
+            padding: 16px;
+            touch-action: manipulation;
+        }
+
+        .game-wrapper {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 70px;
+            padding: 20px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        .math-panel {
+            background: rgba(255, 248, 205, 0.95);
+            border-radius: 60px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            background: #ff8c42;
+            display: inline-block;
+            padding: 6px 20px;
+            border-radius: 50px;
+            color: white;
+            text-shadow: 2px 2px 0 #a1581a;
+            box-shadow: 0 5px 0 #a1581a;
+            margin-bottom: 15px;
+        }
+
+        .difficulty-panel {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .difficulty-btn {
+            background: #c9a87b;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #7a4f1a;
+            transition: 0.05s linear;
+            font-family: inherit;
+        }
+        .difficulty-btn.active {
+            background: #ffaa33;
+            box-shadow: 0 0 10px gold;
+            transform: scale(1.02);
+        }
+        .difficulty-btn:active {
+            transform: translateY(2px);
+        }
+
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: #fff0cf;
+            border-radius: 50px;
+            padding: 8px 18px;
+            display: inline-flex;
+            align-items: baseline;
+            gap: 10px;
+            box-shadow: 0 4px 0 #c29b4a;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #b4531a;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: #ffefb9;
+            padding: 0 12px;
+            border-radius: 40px;
+            color: #d4540a;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .reset-btn, .upload-btn {
+            background: #ffaa55;
+            border: none;
+            font-size: 1rem;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #b4621a;
+            font-family: inherit;
+        }
+        .upload-area {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff0cf;
+            padding: 5px 15px;
+            border-radius: 50px;
+        }
+        .file-label {
+            background: #ffaa55;
+            padding: 5px 15px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        #fileInput {
+            display: none;
+        }
+
+        .question-area {
+            background: #fdebb3;
+            border-radius: 50px;
+            padding: 15px;
+            margin: 15px 0;
+            position: relative;
+        }
+        .timer-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddb582;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .timer-fill {
+            width: 100%;
+            height: 100%;
+            background: #ff8800;
+            transition: width 0.05s linear;
+        }
+
+        .math-expression {
+            font-size: 3rem;
+            font-weight: bold;
+            background: white;
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 60px;
+            color: #d6560a;
+            letter-spacing: 6px;
+            box-shadow: 0 5px 0 #e0b064;
+        }
+
+        .visual-hint {
+            font-size: 1.5rem;
+            margin-top: 10px;
+            color: #b4521a;
+        }
+
+        .answers-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0 10px;
+        }
+
+        .answer-btn {
+            background: #ffd966;
+            width: 80px;
+            height: 80px;
+            border-radius: 50px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            border: none;
+            color: #a14500;
+            box-shadow: 0 8px 0 #b47c2e;
+            cursor: pointer;
+            transition: 0.04s linear;
+            font-family: monospace;
+        }
+
+        .answer-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 3px 0 #b47c2e;
+        }
+
+        .feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: #fff1cf;
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 40px;
+            margin-top: 10px;
+        }
+
+        .battle-area {
+            background: #2b4b2f;
+            border-radius: 50px;
+            padding: 15px;
+            box-shadow: inset 0 0 0 4px #6f9e3f, 0 8px 18px black;
+        }
+
+        .battle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #1f3b21;
+            padding: 8px 20px;
+            border-radius: 40px;
+            margin-bottom: 12px;
+            color: #ffec9f;
+            font-weight: bold;
+            gap: 10px;
+        }
+
+        .health-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #2e2e1e;
+            padding: 5px 12px;
+            border-radius: 30px;
+        }
+
+        .health-bar {
+            width: 120px;
+            height: 18px;
+            background: #6b2e2e;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            width: 100%;
+            height: 100%;
+            background: #4eff6e;
+            transition: width 0.2s;
+        }
+
+        .power-badge {
+            background: #ffbf69;
+            color: #853d0c;
+            padding: 4px 15px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #3c6e47;
+            border-radius: 40px;
+            box-shadow: inset 0 0 0 3px #96c280, 0 6px 12px rgba(0,0,0,0.3);
+            width: 100%;
+            height: auto;
+        }
+
+        .game-status {
+            margin-top: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: #1f2a1b;
+            color: #ffd966;
+            padding: 8px;
+            border-radius: 40px;
+            text-align: center;
+        }
+
+        .restart-battle-btn {
+            background: #ffaa55;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .math-expression { font-size: 2rem; }
+            .answer-btn { width: 65px; height: 65px; font-size: 2rem; }
+            .visual-hint { font-size: 1.1rem; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <div class="math-panel">
+        <div style="text-align:center">
+            <h1>⚔️ РЫЦАРЬ МАТЕМАТИКИ ⚔️</h1>
+        </div>
+        
+        <div class="difficulty-panel">
+            <button class="difficulty-btn" data-diff="easy">🐣 ЛЁГКИЙ (сила 2, зомби тихие)</button>
+            <button class="difficulty-btn" data-diff="medium" id="defaultDiff">⚔️ СРЕДНИЙ (бафы 5 сек, зомби быстрее)</button>
+            <button class="difficulty-btn" data-diff="hard">🔥 СЛОЖНЫЙ (сила навсегда, зомби агрессивные)</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-label">✅ ПРАВИЛЬНЫХ ОТВЕТОВ</span>
+                <span class="stat-value" id="totalCorrect">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">⚡ СИЛА АТАКИ</span>
+                <span class="stat-value" id="activePower">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">💀 УБИТО ЗОМБИ</span>
+                <span class="stat-value" id="zombieKills">0</span>
+            </div>
+            <div class="upload-area">
+                <label class="file-label" for="fileInput">📸 Загрузить персонажа (jpg)</label>
+                <input type="file" id="fileInput" accept="image/jpeg,image/jpg">
+                <button class="reset-btn" id="resetMathBtn">🔄 СБРОС МАТЕМАТИКИ</button>
+            </div>
+        </div>
+
+        <div class="question-area">
+            <div class="math-expression" id="mathQuestion">2 + 1 = ?</div>
+            <div class="visual-hint" id="visualHint">🐧 🐧 + 🐧</div>
+            <div class="timer-bar" id="timerBarContainer" style="display: none;">
+                <div class="timer-fill" id="timerFill" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <div class="answers-row" id="answersContainer"></div>
+        <div class="feedback" id="feedbackMsg">👉 Решай примеры, чтобы получить силу!</div>
+    </div>
+
+    <div class="battle-area">
+        <div class="battle-header">
+            <div class="health-bar-container">
+                <span class="health-text">❤️ ЗДОРОВЬЕ</span>
+                <div class="health-bar">
+                    <div class="health-fill" id="heroHealthFill" style="width: 100%"></div>
+                </div>
+                <span id="heroHealthText">5</span>
+            </div>
+            <div class="power-badge" id="buffIndicator">⚡ СИЛА: 0</div>
+        </div>
+        <canvas id="battleCanvas" width="700" height="250" style="width:100%; height:auto; max-width:700px; aspect-ratio:700/250"></canvas>
+        <div class="game-status" id="battleStatus">🧟 Зомби приближаются! Решай примеры!</div>
+        <button class="restart-battle-btn" id="fullRestartBtn">🔄 ПОЛНАЯ ПЕРЕЗАГРУЗКА</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- ЗАГРУЗКА ИЗОБРАЖЕНИЯ ПЕРСОНАЖА ----------
+        let knightImage = null;
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && (file.type === 'image/jpeg' || file.type === 'image/jpg')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = () => {
+                        knightImage = img;
+                        setFeedback("✔️ Персонаж загружен! Красивый рыцарь!", "#2a9d6e");
+                        speakText("Новый герой готов!", 0.9);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setFeedback("❌ Пожалуйста, выберите файл .jpg", "#e63946");
+            }
+        });
+
+        // ---------- НАСТРОЙКИ СЛОЖНОСТИ ----------
+        let currentDifficulty = "medium";
+        let questionStartTime = 0;
+        let timerInterval = null;
+
+        const mathQuestionEl = document.getElementById('mathQuestion');
+        const visualHintEl = document.getElementById('visualHint');
+        const answersContainer = document.getElementById('answersContainer');
+        const totalCorrectSpan = document.getElementById('totalCorrect');
+        const activePowerSpan = document.getElementById('activePower');
+        const resetMathBtn = document.getElementById('resetMathBtn');
+        const feedbackDiv = document.getElementById('feedbackMsg');
+        const buffIndicator = document.getElementById('buffIndicator');
+        const timerBarContainer = document.getElementById('timerBarContainer');
+        const timerFill = document.getElementById('timerFill');
+
+        const canvas = document.getElementById('battleCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let hero = {
+            x: 350, y: 220,
+            health: 5,
+            maxHealth: 5,
+            baseAttackCooldown: 600,
+            lastAttackTime: 0
+        };
+        
+        // Для среднего уровня: временные бафы (массив времени окончания)
+        let activeBuffs = [];
+        
+        let zombieKills = 0;
+        const ZOMBIES_TO_WIN = 18;
+        let zombies = [];
+        let gameActive = true;
+        let victory = false;
+        let spawnIntervalId = null;
+        let buffCleanupInterval = null;
+        
+        // Новая анимация взмаха мечом (кольцо вокруг героя)
+        let slashAnimation = { active: false, startTime: 0, duration: 250, radius: 52 }; // радиус 52px ~ 2 см при 96dpi
+        
+        // Параметры зомби (будут меняться)
+        let ZOMBIE_BASE_HP = 5;
+        let ZOMBIE_SPEED = 0.35;
+        let SPAWN_INTERVAL_MS = 1900;
+        
+        // Получить текущую силу атаки
+        function getCurrentAttackPower() {
+            if (currentDifficulty === "easy") {
+                return 2;
+            } else if (currentDifficulty === "medium") {
+                const now = Date.now();
+                activeBuffs = activeBuffs.filter(exp => exp > now);
+                return activeBuffs.length;
+            } else { // hard
+                return totalCorrect;
+            }
+        }
+        
+        function updatePowerUI() {
+            const power = getCurrentAttackPower();
+            activePowerSpan.textContent = power;
+            if (currentDifficulty === "easy") {
+                buffIndicator.textContent = `⚡ СИЛА: 2 (постоянная)`;
+            } else if (currentDifficulty === "medium") {
+                buffIndicator.textContent = `⚡ СИЛА: ${power} (врем.)`;
+            } else {
+                buffIndicator.textContent = `⚡ СИЛА: ${power} (навсегда)`;
+            }
+        }
+        
+        function addBuff() {
+            if (currentDifficulty === "medium") {
+                activeBuffs.push(Date.now() + 5000);
+                updatePowerUI();
+            }
+        }
+        
+        function clearAllBuffs() {
+            if (currentDifficulty === "medium") {
+                activeBuffs = [];
+                updatePowerUI();
+            }
+        }
+        
+        function updateHealthUI() {
+            const percent = (hero.health / hero.maxHealth) * 100;
+            const fillEl = document.getElementById('heroHealthFill');
+            if (fillEl) fillEl.style.width = `${Math.max(0, percent)}%`;
+            document.getElementById('heroHealthText').innerText = hero.health;
+        }
+        
+        function updateKillsUI() {
+            document.getElementById('zombieKills').innerText = zombieKills;
+        }
+        
+        function gameLose() {
+            if (!gameActive) return;
+            gameActive = false;
+            victory = false;
+            if (spawnIntervalId) clearInterval(spawnIntervalId);
+            if (buffCleanupInterval) clearInterval(buffCleanupInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('battleStatus').innerHTML = "💀 ПОРАЖЕНИЕ! Зомби одолели рыцаря... Нажми «ПОЛНАЯ ПЕРЕЗАГРУЗКА» 💀";
+            feedbackDiv.innerHTML = "😭 Рыцарь пал... Начни заново!";
+            disableMathGame(true);
+        }
+        
+        function gameWin() {
+            if (!gameActive) return;
+            gameActive = false;
+            victory = true;
+            if (spawnIntervalId) clearInterval(spawnIntervalId);
+            if (buffCleanupInterval) clearInterval(buffCleanupInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('battleStatus').innerHTML = "🏆 ПОБЕДА! Рыцарь уничтожил всех зомби! 🏆";
+            feedbackDiv.innerHTML = "🎉 ТЫ ГЕНИЙ! Рыцарь победил! 🎉";
+            disableMathGame(true);
+        }
+        
+        function disableMathGame(disabled) {
+            const btns = document.querySelectorAll('.answer-btn');
+            btns.forEach(btn => btn.disabled = disabled);
+        }
+        
+        function spawnZombie() {
+            if (!gameActive) return;
+            const x = 30 + Math.random() * (canvas.width - 60);
+            zombies.push({
+                x: x, y: 25, radius: 14,
+                hp: ZOMBIE_BASE_HP, maxHp: ZOMBIE_BASE_HP,
+                speed: ZOMBIE_SPEED
+            });
+        }
+        
+        function updateZombies() {
+            if (!gameActive) return;
+            for (let i = 0; i < zombies.length; i++) {
+                const z = zombies[i];
+                const dx = hero.x - z.x;
+                const dy = hero.y - z.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 0.5) {
+                    const step = Math.min(z.speed, dist);
+                    z.x += (dx / dist) * step;
+                    z.y += (dy / dist) * step;
+                }
+                const heroRadius = 20;
+                if (Math.hypot(z.x - hero.x, z.y - hero.y) < heroRadius + z.radius) {
+                    hero.health = Math.max(0, hero.health - 1);
+                    updateHealthUI();
+                    zombies.splice(i,1);
+                    i--;
+                    if (hero.health <= 0) gameLose();
+                }
+            }
+        }
+        
+        function heroAttack(now) {
+            if (!gameActive) return;
+            const power = getCurrentAttackPower();
+            if (power <= 0) return;
+            if (now - hero.lastAttackTime >= hero.baseAttackCooldown) {
+                hero.lastAttackTime = now;
+                // Активируем новую анимацию взмаха вокруг героя
+                slashAnimation.active = true;
+                slashAnimation.startTime = now;
+                if (zombies.length > 0) {
+                    let closest = null, minDist = Infinity;
+                    for (let z of zombies) {
+                        const d = Math.hypot(z.x - hero.x, z.y - hero.y);
+                        if (d < minDist) { minDist = d; closest = z; }
+                    }
+                    if (closest) {
+                        closest.hp -= power;
+                        if (closest.hp <= 0) {
+                            const idx = zombies.indexOf(closest);
+                            if (idx !== -1) {
+                                zombies.splice(idx,1);
+                                zombieKills++;
+                                updateKillsUI();
+                                if (zombieKills >= ZOMBIES_TO_WIN && gameActive) gameWin();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Рисование рыцаря (с поддержкой загруженного изображения)
+        function drawKnight(ctx, x, y) {
+            if (knightImage && knightImage.complete && knightImage.naturalWidth > 0) {
+                ctx.drawImage(knightImage, x-24, y-24, 48, 48);
+                // Дорисовываем меч и щит поверх, чтобы было похоже
+                ctx.beginPath();
+                ctx.moveTo(x+15, y-8);
+                ctx.lineTo(x+28, y-18);
+                ctx.lineTo(x+32, y-12);
+                ctx.fillStyle = "#e0e0e0";
+                ctx.fill();
+                ctx.fillStyle = "#cab577";
+                ctx.fillRect(x+18, y-12, 6, 14);
+            } else {
+                // Обычный рисованный рыцарь
+                ctx.beginPath();
+                ctx.arc(x, y, 18, 0, Math.PI*2);
+                ctx.fillStyle = "#bcbcbc";
+                ctx.fill();
+                ctx.fillStyle = "#ffcc99";
+                ctx.beginPath();
+                ctx.arc(x-3, y-3, 4, 0, Math.PI*2);
+                ctx.arc(x+3, y-3, 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.beginPath();
+                ctx.arc(x-4, y-4, 2, 0, Math.PI*2);
+                ctx.arc(x+2, y-4, 2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "#758c9e";
+                ctx.beginPath();
+                ctx.ellipse(x, y-6, 12, 8, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "#c9d1d9";
+                ctx.beginPath();
+                ctx.ellipse(x, y-7, 8, 5, 0, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x+16, y-4);
+                ctx.lineTo(x+26, y-12);
+                ctx.lineTo(x+28, y-8);
+                ctx.fillStyle = "#dfdfdf";
+                ctx.fill();
+                ctx.fillStyle = "#cab577";
+                ctx.fillRect(x+18, y-7, 4, 12);
+                ctx.beginPath();
+                ctx.arc(x-12, y+2, 9, 0, Math.PI*2);
+                ctx.fillStyle = "#d6b575";
+                ctx.fill();
+                ctx.fillStyle = "#ffd966";
+                ctx.beginPath();
+                ctx.arc(x-12, y+2, 6, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        
+        // Новая анимация: вращающийся клинок (кольцо) вокруг героя радиусом 52px
+        function drawSlashRing(ctx, x, y, now) {
+            if (!slashAnimation.active) return;
+            const elapsed = now - slashAnimation.startTime;
+            if (elapsed > slashAnimation.duration) {
+                slashAnimation.active = false;
+                return;
+            }
+            const progress = elapsed / slashAnimation.duration; // 0..1
+            // Угол поворота: от 0 до 2*PI
+            const angleStart = progress * Math.PI * 2;
+            const angleEnd = angleStart + Math.PI * 1.5; // дуга 270 градусов
+            
+            const radius = slashAnimation.radius;
+            ctx.beginPath();
+            // Рисуем дугу вокруг героя
+            ctx.arc(x, y, radius, angleStart, angleEnd);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = `rgba(255, 220, 80, ${1 - progress * 0.6})`;
+            ctx.stroke();
+            // Добавляем искры
+            for (let i = 0; i < 5; i++) {
+                const sparkAngle = angleStart + (i / 5) * Math.PI * 1.5;
+                const sparkX = x + Math.cos(sparkAngle) * radius;
+                const sparkY = y + Math.sin(sparkAngle) * radius;
+                ctx.beginPath();
+                ctx.arc(sparkX, sparkY, 3 + Math.random() * 3, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(255, 200, 50, ${1 - progress})`;
+                ctx.fill();
+            }
+        }
+        
+        function drawBuffs(ctx, x, y) {
+            const power = getCurrentAttackPower();
+            if (power > 0 && currentDifficulty !== "easy") {
+                ctx.beginPath();
+                ctx.arc(x, y, 24, 0, Math.PI*2);
+                ctx.strokeStyle = "#ffd966";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                let maxI = Math.min(power, 8);
+                for(let i=0;i<maxI;i++) {
+                    ctx.fillStyle = `rgba(255, 215, 0, ${0.4+Math.sin(Date.now()*0.008+i)*0.2})`;
+                    ctx.beginPath();
+                    ctx.arc(x + Math.sin(Date.now()*0.01+i)*14, y-8 + Math.cos(Date.now()*0.008+i)*12, 5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        function draw() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Земля
+            ctx.fillStyle = "#5b8c5a";
+            ctx.fillRect(0, canvas.height-40, canvas.width, 40);
+            ctx.fillStyle = "#436d3a";
+            for(let i=0;i<12;i++) ctx.fillRect(i*60, canvas.height-42, 25, 8);
+            
+            // Зомби
+            zombies.forEach(z => {
+                ctx.beginPath();
+                ctx.arc(z.x, z.y, z.radius, 0, Math.PI*2);
+                ctx.fillStyle = "#4f6a3b";
+                ctx.fill();
+                ctx.fillStyle = "#2c4820";
+                ctx.beginPath();
+                ctx.arc(z.x-4, z.y-3, 4, 0, Math.PI*2);
+                ctx.arc(z.x+4, z.y-3, 4, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "white";
+                ctx.beginPath();
+                ctx.arc(z.x-5, z.y-4, 2, 0, Math.PI*2);
+                ctx.arc(z.x+3, z.y-4, 2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.beginPath();
+                ctx.arc(z.x-5, z.y-4, 1, 0, Math.PI*2);
+                ctx.arc(z.x+3, z.y-4, 1, 0, Math.PI*2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(z.x-7, z.y+2);
+                ctx.lineTo(z.x+7, z.y+5);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#4a1f00";
+                ctx.stroke();
+                const hpPercent = z.hp / z.maxHp;
+                ctx.fillStyle = "#aa2e2e";
+                ctx.fillRect(z.x-12, z.y-14, 24, 5);
+                ctx.fillStyle = "#5fdc5f";
+                ctx.fillRect(z.x-12, z.y-14, 24 * hpPercent, 5);
+            });
+            
+            drawKnight(ctx, hero.x, hero.y);
+            drawSlashRing(ctx, hero.x, hero.y, Date.now());
+            drawBuffs(ctx, hero.x, hero.y);
+        }
+        
+        function animate(timestamp) {
+            if (!gameActive && !victory) { draw(); requestAnimationFrame(animate); return; }
+            if (!gameActive && victory) { draw(); requestAnimationFrame(animate); return; }
+            updateZombies();
+            heroAttack(timestamp);
+            draw();
+            requestAnimationFrame(animate);
+        }
+        
+        // ---------- МАТЕМАТИКА (без прерываний) ----------
+        let currentQuestion = null;
+        let totalCorrect = 0;
+        let processingAnswer = false;
+        
+        function generateNonZeroMath() {
+            let attempts = 0;
+            while (attempts < 20) {
+                const isAdd = Math.random() >= 0.5;
+                if (isAdd) {
+                    let a = Math.floor(Math.random() * 5) + 1;
+                    let maxB = 5 - a;
+                    if (maxB >= 1) {
+                        let b = Math.floor(Math.random() * maxB) + 1;
+                        let ans = a + b;
+                        if (ans >= 1 && ans <= 5) return { operand1: a, operand2: b, operator: '+', answer: ans, text: `${a} + ${b}` };
+                    }
+                } else {
+                    let a = Math.floor(Math.random() * 5) + 1;
+                    let b = Math.floor(Math.random() * a) + 1;
+                    let ans = a - b;
+                    if (ans >= 1 && ans <= 5) return { operand1: a, operand2: b, operator: '-', answer: ans, text: `${a} - ${b}` };
+                }
+                attempts++;
+            }
+            return { operand1: 2, operand2: 1, operator: '+', answer: 3, text: `2 + 1` };
+        }
+        
+        function generateOptions(correct) {
+            let opts = new Set([correct]);
+            while(opts.size < 3) opts.add(Math.floor(Math.random() * 5) + 1);
+            let arr = Array.from(opts);
+            for(let i=arr.length-1;i>0;i--) { const j = Math.floor(Math.random()*(i+1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+            return arr;
+        }
+        
+        function updateVisualHint() {
+            let a = currentQuestion.operand1, b = currentQuestion.operand2, op = currentQuestion.operator;
+            let emoji = (op === '+') ? "🐧" : "🍎";
+            visualHintEl.innerHTML = (op === '+') ? `${emoji.repeat(a)} + ${emoji.repeat(b)}` : `${emoji.repeat(a)} - ${emoji.repeat(b)}`;
+        }
+        
+        function renderAnswerButtons(options) {
+            answersContainer.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = opt;
+                btn.setAttribute('data-value', opt);
+                btn.addEventListener('click', () => checkAnswer(opt));
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); btn.click(); });
+                answersContainer.appendChild(btn);
+            });
+            if (!gameActive) disableMathGame(true);
+        }
+        
+        function startVisualTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            if (currentDifficulty !== "hard") {
+                timerBarContainer.style.display = "none";
+                return;
+            }
+            timerBarContainer.style.display = "block";
+            questionStartTime = Date.now();
+            timerInterval = setInterval(() => {
+                if (!gameActive || !currentQuestion) return;
+                const elapsed = (Date.now() - questionStartTime) / 1000;
+                const remaining = Math.max(0, 5 - elapsed);
+                const percent = (remaining / 5) * 100;
+                timerFill.style.width = `${percent}%`;
+                // Никаких действий по истечении времени
+            }, 50);
+        }
+        
+        function checkAnswer(selected) {
+            if (!gameActive) return;
+            if (processingAnswer) return;
+            processingAnswer = true;
+            
+            const isCorrect = (selected === currentQuestion.answer);
+            if (isCorrect) {
+                totalCorrect++;
+                totalCorrectSpan.textContent = totalCorrect;
+                addBuff();
+                setFeedback(`✔️ Верно! Сила теперь ${getCurrentAttackPower()}`, "#2a9d6e");
+                speakText(`Правильно!`, 0.9);
+                animateMathCorrect();
+                setTimeout(() => {
+                    generateNewQuestion();
+                    processingAnswer = false;
+                }, 200);
+            } else {
+                setFeedback(`❌ Ошибка! ${currentQuestion.text} не равно ${selected}.`, "#e63946");
+                speakText(`Не правильно`, 0.85);
+                flashWrong(selected);
+                if (currentDifficulty === "medium") {
+                    clearAllBuffs();
+                    setFeedback("❌ Ошибка! Все временные бафы потеряны!", "#e63946");
+                }
+                setTimeout(() => {
+                    generateNewQuestion();
+                    processingAnswer = false;
+                }, 400);
+            }
+        }
+        
+        function animateMathCorrect() {
+            const expr = document.querySelector('.math-expression');
+            if(expr) expr.style.transform = "scale(1.05)";
+            setTimeout(() => { if(expr) expr.style.transform = ""; }, 200);
+        }
+        
+        function flashWrong(wrongVal) {
+            const btns = document.querySelectorAll('.answer-btn');
+            btns.forEach(btn => {
+                if (parseInt(btn.getAttribute('data-value')) === wrongVal) {
+                    btn.style.backgroundColor = "#ffaaaa";
+                    setTimeout(() => btn.style.backgroundColor = "", 400);
+                }
+            });
+        }
+        
+        let feedbackTimer = null;
+        function setFeedback(msg, color) {
+            feedbackDiv.textContent = msg;
+            feedbackDiv.style.color = color;
+            if (feedbackTimer) clearTimeout(feedbackTimer);
+            feedbackTimer = setTimeout(() => {
+                if (gameActive) {
+                    if (currentDifficulty === "hard") feedbackDiv.innerHTML = "⏳ Таймер для красоты, время не наказывает!";
+                    else feedbackDiv.innerHTML = "👉 Решай примеры, чтобы получить силу!";
+                } else feedbackDiv.innerHTML = victory ? "🏆 ПОБЕДА!" : "💀 ПОРАЖЕНИЕ";
+            }, 2000);
+        }
+        
+        function generateNewQuestion() {
+            if (!gameActive && (victory || !gameActive)) return;
+            currentQuestion = generateNonZeroMath();
+            mathQuestionEl.innerHTML = `${currentQuestion.text} = ?`;
+            updateVisualHint();
+            currentOptions = generateOptions(currentQuestion.answer);
+            renderAnswerButtons(currentOptions);
+            if (timerInterval) clearInterval(timerInterval);
+            startVisualTimer();
+        }
+        
+        function speakText(text, rate=0.9) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            utterance.rate = rate;
+            window.speechSynthesis.speak(utterance);
+        }
+        
+        // НОВЫЕ НАСТРОЙКИ СЛОЖНОСТИ
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                if (btn.getAttribute('data-diff') === level) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            if (level === "easy") {
+                ZOMBIE_BASE_HP = 4;
+                ZOMBIE_SPEED = 0.2;
+                SPAWN_INTERVAL_MS = 2200;
+                document.getElementById('battleStatus').innerHTML = "🐣 ЛЁГКИЙ: зомби очень медленные, сила всегда 2!";
+                setFeedback("🐣 Лёгкий режим: сила постоянна, просто решай!", "#2a9d6e");
+            } else if (level === "medium") {
+                ZOMBIE_BASE_HP = 5;
+                ZOMBIE_SPEED = 0.5;     // быстрее, чем на лёгком
+                SPAWN_INTERVAL_MS = 1600;
+                document.getElementById('battleStatus').innerHTML = "⚔️ СРЕДНИЙ: зомби быстрее, бафы на 5 секунд!";
+                setFeedback("⚔️ Каждый правильный ответ даёт временную силу на 5 сек!", "#ffaa33");
+            } else if (level === "hard") {
+                ZOMBIE_BASE_HP = 7;       // более живучие
+                ZOMBIE_SPEED = 0.8;       // самые быстрые
+                SPAWN_INTERVAL_MS = 1300;
+                document.getElementById('battleStatus').innerHTML = "🔥 СЛОЖНЫЙ: зомби быстрые и сильные, но сила накапливается навсегда!";
+                setFeedback("🔥 Сила растёт с каждым ответом и не сгорает! Таймер только для вида.", "#e63946");
+            }
+            if (spawnIntervalId) {
+                clearInterval(spawnIntervalId);
+                startSpawning();
+            }
+            fullGameRestart();
+        }
+        
+        function fullGameRestart() {
+            totalCorrect = 0;
+            totalCorrectSpan.textContent = totalCorrect;
+            clearAllBuffs();
+            processingAnswer = false;
+            gameActive = true;
+            victory = false;
+            hero.health = hero.maxHealth;
+            updateHealthUI();
+            zombieKills = 0;
+            updateKillsUI();
+            zombies = [];
+            if (spawnIntervalId) clearInterval(spawnIntervalId);
+            if (buffCleanupInterval) clearInterval(buffCleanupInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            startSpawning();
+            disableMathGame(false);
+            generateNewQuestion();
+            buffCleanupInterval = setInterval(() => {
+                if (gameActive) updatePowerUI();
+            }, 1000);
+        }
+        
+        function startSpawning() {
+            if (spawnIntervalId) clearInterval(spawnIntervalId);
+            spawnIntervalId = setInterval(() => {
+                if (gameActive) spawnZombie();
+            }, SPAWN_INTERVAL_MS);
+        }
+        
+        function init() {
+            canvas.width = 700;
+            canvas.height = 250;
+            hero.x = canvas.width/2;
+            hero.y = canvas.height - 30;
+            hero.health = 5;
+            hero.maxHealth = 5;
+            hero.lastAttackTime = 0;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.addEventListener('click', () => setDifficulty(btn.getAttribute('data-diff')));
+            });
+            setDifficulty("medium");
+            animate();
+        }
+        
+        resetMathBtn.addEventListener('click', () => {
+            if (!gameActive) fullGameRestart();
+            else {
+                totalCorrect = 0;
+                totalCorrectSpan.textContent = totalCorrect;
+                clearAllBuffs();
+                setFeedback("Счёт сброшен, вся сила обнулена!", "#e09530");
+                speakText("Сила обнулена");
+                updatePowerUI();
+                generateNewQuestion();
+            }
+        });
+        
+        document.getElementById('fullRestartBtn').addEventListener('click', () => fullGameRestart());
+        
+        init();
+    })();
+</script>
+</body>
+</html>
