@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Главное меню — Развивающие игры</title>
+    <style>
+        body {
+            margin: 0; display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; background-color: #f7f7f7; font-family: 'Comic Sans MS', cursive, sans-serif;
+            user-select: none; padding-top: 20px; padding-bottom: 40px;
+        }
+        .header-panel {
+            width: 92%; max-width: 500px; display: flex; justify-content: space-between;
+            align-items: center; background: white; padding: 10px 15px;
+            border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 25px;
+            box-sizing: border-box;
+        }
+        .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .avatar-frame { width: 50px; height: 50px; border-radius: 50%; border: 3px solid #2196f3; overflow: hidden; background: #eee; }
+        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+        .user-name { color: #333; font-weight: bold; font-size: 0.9rem; border-bottom: 2px dashed #2196f3; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .wallet-section { display: flex; align-items: center; gap: 8px; }
+        .coin-balance {
+            display: flex; align-items: center; gap: 5px; background: #fff9c4;
+            padding: 8px 12px; border-radius: 20px; border: 2px solid #fbc02d;
+            font-weight: bold; color: #f57f17; font-size: 1rem;
+        }
+        .shop-btn {
+            background-color: #9c27b0; color: white; width: 40px; height: 40px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            text-decoration: none; font-size: 1.2rem; box-shadow: 0 4px 0 #7b1fa2; transition: 0.1s;
+        }
+        .shop-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #7b1fa2; }
+        .age-section { width: 95%; max-width: 500px; margin-bottom: 25px; text-align: center; }
+        .age-title { display: inline-block; background: #fff; padding: 5px 20px; border-radius: 50px; color: #ff5722; font-size: 1.3rem; margin-bottom: 15px; border: 3px solid #ff5722; font-weight: bold; }
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .btn-menu { 
+            display: flex; flex-direction: column; align-items: center; padding: 15px; 
+            border-radius: 25px; text-decoration: none; color: white; font-weight: bold; 
+            position: relative; transition: 0.1s; box-shadow: 0 6px 0 #bbb;
+        }
+        .btn-menu:active { transform: translateY(4px); box-shadow: none !important; }
+        .icon { font-size: 2rem; margin-bottom: 5px; }
+        .btn-colors { background: #2196f3; box-shadow: 0 6px 0 #1565c0; }
+        .btn-shapes { background: #4caf50; box-shadow: 0 6px 0 #2e7d32; }
+        .btn-animals { background: #ff9800; box-shadow: 0 6px 0 #e65100; }
+        .btn-puzzle { background: #9c27b0; box-shadow: 0 6px 0 #7b1fa2; }
+        .btn-farm { background: #8bc34a; box-shadow: 0 6px 0 #689f38; }
+        .btn-counting { background: #e91e63; box-shadow: 0 6px 0 #ad1457; }
+        .btn-alphabet { background: #00bcd4; box-shadow: 0 6px 0 #0097a7; }
+        .btn-farm-wide { grid-column: span 2; flex-direction: row !important; justify-content: center; gap: 20px; padding: 20px; }
+        #auth-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 30px; text-align: center; width: 85%; max-width: 320px; }
+        .user-list { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; max-height: 200px; overflow-y: auto; }
+        .user-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f0f4f8; border-radius: 15px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header-panel">
+        <div class="user-info" onclick="openAuth()">
+            <div class="avatar-frame">
+                <img src="avatar.jpg" alt="Avatar" id="user-avatar" onerror="this.src='https://placeholder.com'">
+            </div>
+            <span id="display-name" class="user-name">Кто ты?</span>
+        </div>
+        
+        <div class="wallet-section">
+            <div class="coin-balance">
+                <span>🟡</span>
+                <span id="coin-count">0</span>
+            </div>
+            <a href="shop/shop.html" class="shop-btn">🛒</a>
+        </div>
+    </div>
+
+    <!-- Блоки игр -->
+    <div class="age-section">
+        <div class="age-title">3 года</div>
+        <div class="menu-grid">
+            <!-- ИСПРАВЛЕННЫЕ ПУТИ -->
+            <a href="index/index.html" class="btn-menu btn-colors"><span class="icon">🎨</span><span>Цвета</span></a>
+            <a href="shapes/shapes.html" class="btn-menu btn-shapes"><span class="icon">📐</span><span>Формы</span></a>
+            <!-- ОСТАЛЬНЫЕ ПУТИ -->
+            <a href="animals/animals.html" class="btn-menu btn-animals"><span class="icon">🐶</span><span>Голоса</span></a>
+            <a href="puzzle/puzzle.html" class="btn-menu btn-puzzle"><span class="icon">🧩</span><span>Пазлы</span></a>
+        </div>
+    </div>
+
+    <div class="age-section">
+        <div class="age-title" style="color: #8bc34a; border-color: #8bc34a;">Мой мир</div>
+        <div class="menu-grid">
+            <a href="Farm/Farm.html" class="btn-menu btn-farm btn-farm-wide">
+                <span class="icon">🚜</span>
+                <div style="text-align: left;">
+                    <div style="font-size: 1.4rem;">Весёлая ферма</div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">Расти урожай и зверей</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="age-section">
+        <div class="age-title" style="color: #e91e63; border-color: #e91e63;">4 года</div>
+        <div class="menu-grid">
+            <a href="counting/counting.html" class="btn-menu btn-counting"><span class="icon">🍎</span><span>Счет</span></a>
+            <a href="alphabet/alphabet.html" class="btn-menu btn-alphabet"><span class="icon">🅰️</span><span>Алфавит</span></a>
+        </div>
+    </div>
+
+    <!-- Модальное окно выбора героя -->
+    <div id="auth-modal">
+        <div class="modal-content">
+            <h3>Кто будет играть?</h3>
+            <div id="user-list" class="user-list"></div>
+            <div style="border-top: 1px solid #eee; padding-top: 15px;">
+                <input type="text" id="name-input" placeholder="Имя ребенка..." style="width:100%; padding:12px; border-radius:15px; border:2px solid #ddd; margin-bottom:10px; box-sizing:border-box;">
+                <button onclick="createNewUser()" style="width:100%; background:#4caf50; color:white; border:none; padding:12px; border-radius:15px; font-weight:bold; cursor:pointer;">ИГРАТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => {
+            updateUI(); 
+            setInterval(updateUI, 1000);
+        };
+
+        function updateUI() {
+            const current = localStorage.getItem('currentChild');
+            if (current) {
+                loadProfile(current);
+            } else {
+                openAuth();
+            }
+        }
+
+        function openAuth() {
+            renderUserList();
+            document.getElementById('auth-modal').style.display = 'flex';
+        }
+
+        function renderUserList() {
+            const users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const listDiv = document.getElementById('user-list');
+            listDiv.innerHTML = users.map(user => `
+                <div class="user-item" onclick="selectUser('${user.name}')">
+                    <span>${user.name} (🟡 ${user.coins})</span>
+                </div>
+            `).join('');
+        }
+
+        function createNewUser() {
+            const name = document.getElementById('name-input').value.trim();
+            if (!name) return alert("Введите имя!");
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            if (!users.find(u => u.name === name)) {
+                users.push({ name: name, coins: 0 });
+                localStorage.setItem('gameUsers', JSON.stringify(users));
+            }
+            selectUser(name);
+        }
+
+        function selectUser(name) {
+            localStorage.setItem('currentChild', name);
+            loadProfile(name);
+            document.getElementById('auth-modal').style.display = 'none';
+        }
+
+        function loadProfile(name) {
+            const users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const user = users.find(u => u.name === name);
+            if (user) {
+                document.getElementById('display-name').innerText = user.name;
+                document.getElementById('coin-count').innerText = user.coins;
+            }
+        }
+    </script>
+</body>
+</html>

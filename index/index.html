@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Игра: Учим цвета</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #e0f2f1;
+            font-family: 'Comic Sans MS', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .back-btn {
+            position: absolute; top: 20px; left: 20px; padding: 15px 25px;
+            background-color: #ff7043; color: white; text-decoration: none;
+            border-radius: 15px; font-weight: bold; box-shadow: 0 5px 0 #d84315;
+            z-index: 100;
+        }
+        .back-btn:active { top: 25px; box-shadow: 0 2px 0 #d84315; }
+
+        .coin-status {
+            position: absolute; top: 20px; right: 20px;
+            background: white; padding: 10px 20px; border-radius: 25px;
+            font-weight: bold; color: #f57f17; border: 3px solid #fbc02d;
+            font-size: 1.4rem; display: flex; align-items: center; gap: 8px;
+            z-index: 100; transition: transform 0.2s;
+        }
+
+        .flying-coin {
+            position: fixed; font-size: 2rem; z-index: 999;
+            pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+
+        .wallet-bump { transform: scale(1.2); }
+
+        h1 { color: #37474f; font-size: 2rem; margin-bottom: 30px; text-align: center; pointer-events: none; }
+
+        #target-box {
+            width: 150px; height: 150px; border: 10px solid white;
+            border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-bottom: 50px; transition: transform 0.4s;
+        }
+
+        .options-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 450px; }
+
+        .ball {
+            width: 100px; height: 100px; border-radius: 50%; cursor: pointer;
+            border: 6px solid white; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ball:active { transform: scale(0.85); }
+
+        .celebrate { animation: jump 0.6s ease; }
+        @keyframes jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-40px); } }
+
+        .shake { animation: shake 0.4s ease; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    </style>
+</head>
+<body>
+
+    <a href="../menu.html" class="back-btn" draggable="false">⬅ Назад</a>
+    
+    <div class="coin-status" id="wallet">
+        <span>🟡</span> <span id="coin-count">0</span>
+    </div>
+
+    <h1>Найди такой же цвет!</h1>
+    <div id="target-box"></div>
+    <div class="options-container" id="options"></div>
+
+    <script>
+        const colors = ['#f44336', '#4caf50', '#2196f3', '#ffeb3b', '#9c27b0', '#ff9800'];
+        const targetBox = document.getElementById('target-box');
+        const optionsContainer = document.getElementById('options');
+        const coinCountDisplay = document.getElementById('coin-count');
+        const wallet = document.getElementById('wallet');
+        
+        let audioCtx = null;
+        let targetColor = '';
+
+        // ИСПРАВЛЕНО: Работаем с общим списком пользователей
+        function getActiveUser() {
+            const currentName = localStorage.getItem('currentChild');
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            return users.find(u => u.name === currentName);
+        }
+
+        // ИСПРАВЛЕНО: Обновление баланса из общей базы
+        function updateCoins() {
+            const user = getActiveUser();
+            const coins = user ? user.coins : 0;
+            coinCountDisplay.innerText = coins;
+            return coins;
+        }
+
+        // ИСПРАВЛЕНО: Сохранение монет в общую базу gameUsers
+        function saveCoinsToLocalStorage(amount) {
+            const currentName = localStorage.getItem('currentChild');
+            if (!currentName) return;
+
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const index = users.findIndex(u => u.name === currentName);
+            
+            if (index !== -1) {
+                users[index].coins += amount;
+                localStorage.setItem('gameUsers', JSON.stringify(users));
+            }
+        }
+
+        function playSound(freq, type, dur, vol) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function spawnCoin(startX, startY) {
+            const amount = 1;
+            saveCoinsToLocalStorage(amount); // Сохраняем в память сразу
+
+            const coin = document.createElement('div');
+            coin.className = 'flying-coin';
+            coin.innerHTML = '🟡';
+            coin.style.left = startX + 'px';
+            coin.style.top = startY + 'px';
+            document.body.appendChild(coin);
+
+            const walletRect = wallet.getBoundingClientRect();
+
+            setTimeout(() => {
+                coin.style.left = (walletRect.left + 10) + 'px';
+                coin.style.top = (walletRect.top + 10) + 'px';
+                coin.style.transform = 'scale(0.5)';
+                coin.style.opacity = '0.5';
+            }, 20);
+
+            setTimeout(() => {
+                coin.remove();
+                updateCoins(); // Обновляем цифру на экране
+                
+                wallet.classList.add('wallet-bump');
+                playSound(800, 'sine', 0.2, 0.05);
+                setTimeout(() => wallet.classList.remove('wallet-bump'), 200);
+            }, 800);
+        }
+
+        function initGame() {
+            updateCoins(); // Синхронизируем кошелек при старте уровня
+            targetColor = colors[Math.floor(Math.random() * colors.length)];
+            targetBox.style.backgroundColor = targetColor;
+            optionsContainer.innerHTML = '';
+            
+            let gameColors = [targetColor];
+            while(gameColors.length < 4) {
+                let randomCol = colors[Math.floor(Math.random() * colors.length)];
+                if(!gameColors.includes(randomCol)) gameColors.push(randomCol);
+            }
+            gameColors.sort(() => Math.random() - 0.5);
+            
+            gameColors.forEach(color => {
+                const ball = document.createElement('div');
+                ball.className = 'ball';
+                ball.style.backgroundColor = color;
+                ball.setAttribute('draggable', 'false');
+                ball.onclick = (e) => checkAnswer(color, ball, e);
+                optionsContainer.appendChild(ball);
+            });
+        }
+
+        function checkAnswer(selectedColor, element, event) {
+            if (selectedColor === targetColor) {
+                playSound(523, 'sine', 0.4, 0.1);
+                targetBox.classList.add('celebrate');
+                spawnCoin(event.clientX, event.clientY);
+
+                setTimeout(() => {
+                    targetBox.classList.remove('celebrate');
+                    initGame();
+                }, 1000);
+            } else {
+                playSound(150, 'triangle', 0.3, 0.1);
+                element.classList.add('shake');
+                setTimeout(() => element.classList.remove('shake'), 400);
+            }
+        }
+
+        window.oncontextmenu = (e) => e.preventDefault();
+        window.onload = initGame;
+    </script>
+</body>
+</html>

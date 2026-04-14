@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Буквы: Супер-скорость</title>
+    <style>
+        body {
+            margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background-color: #fce4ec; font-family: 'Helvetica', 'Arial', sans-serif;
+            overflow: hidden; touch-action: none; user-select: none;
+        }
+
+        .back-btn {
+            position: absolute; top: 20px; left: 20px; padding: 15px 25px;
+            background-color: #d81b60; color: white; text-decoration: none;
+            border-radius: 15px; font-weight: bold; box-shadow: 0 5px 0 #ad1457; z-index: 100;
+        }
+
+        .coin-status {
+            position: absolute; top: 20px; right: 20px;
+            background: white; padding: 10px 20px; border-radius: 25px;
+            font-weight: bold; color: #f57f17; border: 3px solid #fbc02d;
+            font-size: 1.4rem; display: flex; align-items: center; gap: 8px; z-index: 100;
+        }
+
+        .timer-wrapper {
+            width: 100%; display: flex; justify-content: center; margin: 10px 0 20px;
+        }
+        .timer-container {
+            width: 250px; height: 14px; background: #e0e0e0; border-radius: 10px; overflow: hidden; border: 2px solid white;
+        }
+        #timer-bar {
+            width: 100%; height: 100%; background: #4caf50; transition: width 0.1s linear;
+        }
+
+        .header { text-align: center; }
+        .target-letter {
+            font-size: 5.5rem; color: #880e4f; background: white;
+            width: 120px; height: 120px; display: flex; align-items: center;
+            justify-content: center; border-radius: 15px; border: 8px solid #f8bbd0;
+            margin: 0 auto 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .instruction { font-size: 1.6rem; color: #880e4f; font-weight: 800; margin-bottom: 5px; }
+
+        .game-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr);
+            gap: 20px; width: 90%; max-width: 500px; height: 380px; padding: 15px;
+            background: rgba(255,255,255,0.5); border-radius: 20px;
+        }
+
+        .item {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 4rem; font-weight: 900; color: #311b92;
+            cursor: pointer; transition: 0.2s;
+        }
+
+        .item:active { transform: scale(0.85); }
+
+        .flying-coin {
+            position: fixed; font-size: 2rem; z-index: 999; pointer-events: none;
+            transition: all 0.7s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+
+        .wallet-bump { transform: scale(1.3); }
+        .bonus-text {
+            position: absolute; color: #ffeb3b; font-size: 2.5rem; font-weight: bold;
+            text-shadow: 2px 2px 5px black; z-index: 1000; pointer-events: none;
+            text-align: center; width: 100%; left: 0;
+            animation: fadeUp 1.5s forwards;
+        }
+
+        @keyframes fadeUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-150px); } }
+    </style>
+</head>
+<body>
+
+    <a href="../menu.html" class="back-btn">⬅ Меню</a>
+
+    <div class="coin-status" id="wallet">
+        <span>🟡</span> <span id="coin-count">0</span>
+    </div>
+
+    <div class="header">
+        <div class="target-letter" id="target">?</div>
+        <div class="instruction">НАЙДИ ТАКИЕ БУКВЫ</div>
+        <div class="timer-wrapper">
+            <div class="timer-container"><div id="timer-bar"></div></div>
+        </div>
+    </div>
+
+    <div class="game-grid" id="grid"></div>
+
+   <script>
+    const alphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+    let targetLetter = '', itemsFound = 0, totalToFind = 0, isProcessing = false;
+    let startTime, timerInterval;
+    const FULL_TIME = 15; 
+
+    function getActiveUser() {
+        const currentName = localStorage.getItem('currentChild');
+        let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+        return users.find(u => u.name === currentName);
+    }
+
+    function updateCoinDisplay() {
+        const user = getActiveUser();
+        document.getElementById('coin-count').innerText = user ? user.coins : 0;
+    }
+
+    function saveCoinsToLocalStorage(amount) {
+        const currentName = localStorage.getItem('currentChild');
+        if (!currentName) return;
+        let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+        const index = users.findIndex(u => u.name === currentName);
+        if (index !== -1) {
+            users[index].coins += amount;
+            localStorage.setItem('gameUsers', JSON.stringify(users));
+        }
+    }
+
+    // УЛУЧШЕННАЯ ФУНКЦИЯ ОЗВУЧКИ
+    function speak(text) {
+        window.speechSynthesis.cancel(); // Остановить текущую речь
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'ru-RU';
+        msg.rate = 1.1;
+        // Небольшая задержка помогает браузеру "проснуться"
+        setTimeout(() => {
+            window.speechSynthesis.speak(msg);
+        }, 50);
+    }
+
+    function spawnCoins(startX, startY) {
+        const count = 15; 
+        const wallet = document.getElementById('wallet');
+
+        speak("Молодец! Бонус за скорость!");
+
+        const bonus = document.createElement('div');
+        bonus.className = 'bonus-text';
+        bonus.innerText = "СУПЕР!";
+        bonus.style.top = '50%'; 
+        document.body.appendChild(bonus);
+        setTimeout(() => bonus.remove(), 1500);
+
+        saveCoinsToLocalStorage(count);
+
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const coin = document.createElement('div');
+                coin.className = 'flying-coin';
+                coin.innerHTML = '🟡';
+                coin.style.left = startX + 'px';
+                coin.style.top = startY + 'px';
+                document.body.appendChild(coin);
+
+                const rect = wallet.getBoundingClientRect();
+                setTimeout(() => {
+                    coin.style.left = rect.left + 'px';
+                    coin.style.top = rect.top + 'px';
+                    coin.style.transform = 'scale(0.5)';
+                    coin.style.opacity = '0';
+                }, 50);
+
+                setTimeout(() => {
+                    coin.remove();
+                    updateCoinDisplay();
+                    wallet.classList.add('wallet-bump');
+                    setTimeout(() => wallet.classList.remove('wallet-bump'), 100);
+                }, 650);
+                
+                if(i === count - 1) setTimeout(initGame, 2500);
+            }, i * 40); 
+        }
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        startTime = Date.now();
+        const bar = document.getElementById('timer-bar');
+        timerInterval = setInterval(() => {
+            let elapsed = (Date.now() - startTime) / 1000;
+            let percent = Math.max(0, 100 - (elapsed / FULL_TIME) * 100);
+            bar.style.width = percent + '%';
+            if (percent <= 0) {
+                clearInterval(timerInterval);
+                speak("Время вышло! Давай ещё раз.");
+                setTimeout(initGame, 2500);
+            }
+        }, 50);
+    }
+
+    function initGame() {
+        updateCoinDisplay();
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        itemsFound = 0;
+        totalToFind = 3;
+        isProcessing = false;
+
+        targetLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+        document.getElementById('target').innerText = targetLetter;
+        
+        speak("Найди буквы " + targetLetter);
+
+        let lettersPool = [];
+        for(let i=0; i<totalToFind; i++) lettersPool.push(targetLetter);
+        while(lettersPool.length < 12) {
+            let rChar = alphabet[Math.floor(Math.random() * alphabet.length)];
+            if(rChar !== targetLetter) lettersPool.push(rChar);
+        }
+        
+        lettersPool.sort(() => Math.random() - 0.5);
+
+        lettersPool.forEach(char => {
+            const el = document.createElement('div');
+            el.className = 'item';
+            el.innerText = char;
+            el.onclick = (e) => {
+                if(isProcessing) return;
+
+                // ОЗВУЧКА БУКВЫ ПРИ КЛИКЕ
+                speak(char);
+
+                if(char === targetLetter) {
+                    el.style.visibility = 'hidden';
+                    itemsFound++;
+                    if(itemsFound === totalToFind) {
+                        isProcessing = true;
+                        clearInterval(timerInterval);
+                        // Даем букве озвучиться, прежде чем запускать бонус
+                        setTimeout(() => spawnCoins(e.clientX, e.clientY), 500);
+                    }
+                } else {
+                    el.style.color = 'red';
+                    setTimeout(() => el.style.color = '#311b92', 500);
+                }
+            };
+            grid.appendChild(el);
+        });
+        startTimer();
+    }
+
+    // РАЗБЛОКИРОВКА ЗВУКА: Браузеры требуют первого клика
+    window.addEventListener('touchstart', function() {
+        const msg = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(msg);
+    }, { once: true });
+
+    window.onload = initGame;
+</script>
+</body>
+</html>

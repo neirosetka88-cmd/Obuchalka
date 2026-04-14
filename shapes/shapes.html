@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Игра: Учим формы</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #fff9c4; font-family: 'Comic Sans MS', sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        .back-btn { position: absolute; top: 20px; left: 20px; padding: 15px 25px; background-color: #ff7043; color: white; text-decoration: none; border-radius: 15px; font-weight: bold; box-shadow: 0 5px 0 #d84315; z-index: 100; }
+        .coin-status { position: absolute; top: 20px; right: 20px; background: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; color: #f57f17; border: 3px solid #fbc02d; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; z-index: 100; transition: 0.2s; }
+        .flying-coin { position: fixed; font-size: 2rem; z-index: 999; pointer-events: none; transition: all 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045); }
+        .wallet-bump { transform: scale(1.2); }
+        h1 { color: #5d4037; font-size: 2.2rem; text-align: center; margin-bottom: 20px; pointer-events: none; }
+        #target-area { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; background: white; border: 8px dashed #ffb300; border-radius: 20px; margin-bottom: 50px; }
+        .shape { cursor: pointer; transition: 0.2s; -webkit-user-drag: none; }
+        .square { width: 100px; height: 100px; background: #4caf50; }
+        .circle { width: 110px; height: 110px; background: #2196f3; border-radius: 50%; }
+        .triangle { width: 0; height: 0; border-left: 60px solid transparent; border-right: 60px solid transparent; border-bottom: 110px solid #f44336; }
+        .options-container { display: flex; gap: 30px; justify-content: center; }
+        .celebrate { animation: pop 0.5s ease; }
+        @keyframes pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+        .error { animation: shake 0.4s ease; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    </style>
+</head>
+<body>
+    <a href="../menu.html" class="back-btn">⬅ Назад</a>
+    <div class="coin-status" id="wallet">🟡 <span id="coin-count">0</span></div>
+    <h1>Найди фигуру!</h1>
+    <div id="target-area"></div>
+    <div class="options-container" id="choices"></div>
+
+    <script>
+        const shapeTypes = ['circle', 'square', 'triangle'];
+        let currentTarget = '', audioCtx = null;
+
+        // ИСПРАВЛЕНО: Получаем текущего игрока из общей базы
+        function getActiveUser() {
+            const currentName = localStorage.getItem('currentChild');
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            return users.find(u => u.name === currentName);
+        }
+
+        // ИСПРАВЛЕНО: Синхронизированное обновление баланса
+        function updateCoins() {
+            const user = getActiveUser();
+            document.getElementById('coin-count').innerText = user ? user.coins : 0;
+        }
+
+        // ИСПРАВЛЕНО: Сохранение монет в общую базу gameUsers
+        function saveCoinsToLocalStorage(amount) {
+            const currentName = localStorage.getItem('currentChild');
+            if (!currentName) return;
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const index = users.findIndex(u => u.name === currentName);
+            if (index !== -1) {
+                users[index].coins += amount;
+                localStorage.setItem('gameUsers', JSON.stringify(users));
+            }
+        }
+
+        function spawnCoin(x, y) {
+            const amount = 1;
+            saveCoinsToLocalStorage(amount); // Сохраняем в память
+
+            const coin = document.createElement('div');
+            coin.className = 'flying-coin'; coin.innerHTML = '🟡';
+            coin.style.left = x + 'px'; coin.style.top = y + 'px';
+            document.body.appendChild(coin);
+            const wRect = document.getElementById('wallet').getBoundingClientRect();
+            
+            setTimeout(() => {
+                coin.style.left = wRect.left + 'px'; 
+                coin.style.top = wRect.top + 'px';
+                coin.style.transform = 'scale(0.5)'; 
+                coin.style.opacity = '0.5';
+            }, 20);
+
+            setTimeout(() => {
+                coin.remove();
+                updateCoins(); // Обновляем цифру из общей базы
+                document.getElementById('wallet').classList.add('wallet-bump');
+                setTimeout(() => document.getElementById('wallet').classList.remove('wallet-bump'), 200);
+            }, 800);
+        }
+
+        function playSound(f, t, d, v) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+            g.gain.setValueAtTime(v, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + d);
+        }
+
+        function initGame() {
+            updateCoins();
+            const container = document.getElementById('choices');
+            container.innerHTML = '';
+            currentTarget = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+            document.getElementById('target-area').innerHTML = `<div class="shape ${currentTarget}" style="opacity: 0.15; filter: grayscale(1);"></div>`;
+            
+            shapeTypes.forEach(type => {
+                const div = document.createElement('div');
+                div.className = `shape ${type}`;
+                div.onclick = (e) => {
+                    if (type === currentTarget) {
+                        playSound(523, 'sine', 0.4, 0.1); 
+                        spawnCoin(e.clientX, e.clientY);
+                        document.getElementById('target-area').classList.add('celebrate');
+                        document.getElementById('target-area').firstChild.style.opacity = "1";
+                        setTimeout(() => { 
+                            document.getElementById('target-area').classList.remove('celebrate'); 
+                            initGame(); 
+                        }, 1200);
+                    } else {
+                        playSound(150, 'triangle', 0.3, 0.1); 
+                        div.classList.add('error');
+                        setTimeout(() => div.classList.remove('error'), 400);
+                    }
+                };
+                container.appendChild(div);
+            });
+        }
+        window.onload = initGame;
+    </script>
+</body>
+</html>

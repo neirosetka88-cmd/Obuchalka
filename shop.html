@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Магазин призов</title>
+    <style>
+        body {
+            margin: 0; display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; background-color: #f0f8ff; font-family: 'Comic Sans MS', cursive, sans-serif;
+            user-select: none; padding: 20px 0;
+        }
+
+        /* Шапка магазина */
+        .shop-header {
+            width: 90%; max-width: 500px; display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background: #ff5722; color: white; text-decoration: none; padding: 10px 20px;
+            border-radius: 20px; font-weight: bold; box-shadow: 0 4px 0 #e64a19;
+        }
+
+        .coin-balance {
+            display: flex; align-items: center; gap: 8px; background: #fff9c4;
+            padding: 8px 15px; border-radius: 20px; border: 2px solid #fbc02d;
+            font-weight: bold; color: #f57f17; font-size: 1.2rem;
+        }
+
+        /* Сетка товаров */
+        .shop-container {
+            width: 90%; max-width: 500px; display: grid;
+            grid-template-columns: repeat(2, 1fr); gap: 15px; padding-bottom: 30px;
+        }
+
+        .shop-item {
+            background: white; border-radius: 25px; padding: 15px;
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05); border: 3px solid #eee;
+            transition: 0.2s;
+        }
+
+        .item-icon { font-size: 3rem; margin-bottom: 10px; }
+        .item-name { font-weight: bold; color: #333; margin-bottom: 10px; text-align: center; }
+
+        .buy-btn {
+            width: 100%; border: none; padding: 10px; border-radius: 15px;
+            background: #4caf50; color: white; font-family: inherit;
+            font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #388e3c;
+        }
+
+        .buy-btn:disabled {
+            background: #ccc; box-shadow: 0 4px 0 #999; cursor: not-allowed;
+        }
+
+        .buy-btn.owned {
+            background: #2196f3; box-shadow: 0 4px 0 #1976d2;
+        }
+
+        /* Анимация при покупке */
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .bought { animation: bounce 0.5s ease; border-color: #4caf50; }
+    </style>
+</head>
+<body>
+
+    <div class="shop-header">
+        <a href="index.html" class="back-btn">⬅ Назад</a>
+        <div class="coin-balance">
+            <span>🟡</span>
+            <span id="shop-coins">0</span>
+        </div>
+    </div>
+
+    <h2 style="color: #9c27b0;">Магазин призов</h2>
+
+    <div class="shop-container" id="items-grid">
+        <!-- Товары генерируются скриптом -->
+    </div>
+
+    <script>
+        const currentUser = localStorage.getItem('currentChild') || 'Гость';
+        let coins = parseInt(localStorage.getItem('coins_' + currentUser) || '0');
+        let ownedItems = JSON.parse(localStorage.getItem('owned_' + currentUser) || '[]');
+
+        const items = [
+            { id: 'cat', name: 'Котенок', price: 10, icon: '🐱' },
+            { id: 'dog', name: 'Щенок', price: 15, icon: '🐶' },
+            { id: 'rocket', name: 'Ракета', price: 50, icon: '🚀' },
+            { id: 'crown', name: 'Корона', price: 100, icon: '👑' },
+            { id: 'unicorn', name: 'Единорог', price: 150, icon: '🦄' },
+            { id: 'robot', name: 'Робот', price: 200, icon: '🤖' }
+        ];
+
+        function initShop() {
+            document.getElementById('shop-coins').innerText = coins;
+            const grid = document.getElementById('items-grid');
+            grid.innerHTML = '';
+
+            items.forEach(item => {
+                const isOwned = ownedItems.includes(item.id);
+                const canAfford = coins >= item.price;
+
+                const card = document.createElement('div');
+                card.className = `shop-item ${isOwned ? 'bought' : ''}`;
+                card.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                    <button 
+                        class="buy-btn ${isOwned ? 'owned' : ''}" 
+                        onclick="buyItem('${item.id}', ${item.price})"
+                        ${isOwned || !canAfford ? 'disabled' : ''}>
+                        ${isOwned ? 'Уже есть' : item.price + ' 🟡'}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function buyItem(id, price) {
+            if (coins >= price && !ownedItems.includes(id)) {
+                coins -= price;
+                ownedItems.push(id);
+                
+                // Сохраняем данные
+                localStorage.setItem('coins_' + currentUser, coins);
+                localStorage.setItem('owned_' + currentUser, JSON.stringify(ownedItems));
+                
+                // Обновляем интерфейс
+                initShop();
+                
+                // Звуковой эффект (по желанию)
+                // new Audio('buy_sound.mp3').play();
+            }
+        }
+
+        // Запуск при загрузке
+        initShop();
+    </script>
+</body>
+</html>

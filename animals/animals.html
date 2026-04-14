@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Кто говорит?</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #e8f5e9; font-family: 'Comic Sans MS', sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        .back-btn { position: absolute; top: 20px; left: 20px; padding: 15px 25px; background-color: #ff7043; color: white; text-decoration: none; border-radius: 15px; font-weight: bold; box-shadow: 0 5px 0 #d84315; z-index: 100; }
+        .coin-status { position: absolute; top: 20px; right: 20px; background: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; color: #f57f17; border: 3px solid #fbc02d; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; z-index: 100; transition: 0.2s; }
+        .flying-coin { position: fixed; font-size: 2rem; z-index: 999; pointer-events: none; transition: all 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045); }
+        h1 { color: #2e7d32; font-size: 2rem; margin-bottom: 20px; }
+        .target-text { font-size: 1.5rem; color: #1b5e20; background: white; padding: 15px 30px; border-radius: 25px; cursor: pointer; border: 4px solid #4caf50; margin-bottom: 30px; }
+        .options-container { display: flex; gap: 15px; justify-content: center; }
+        .animal-card { width: 5cm; height: 5cm; background: white; border-radius: 25px; overflow: hidden; cursor: pointer; border: 6px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .animal-card img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .correct { border-color: #4caf50; animation: jump 0.5s ease; }
+        @keyframes jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+    </style>
+</head>
+<body>
+    <a href="../menu.html" class="back-btn">⬅ Назад</a>
+    <div class="coin-status" id="wallet">🟡 <span id="coin-count">0</span></div>
+    <h1>Кто это?</h1>
+    <div class="target-text" id="sound-btn">Нажми и слушай 🔊</div>
+    <div class="options-container" id="choices"></div>
+
+    <script>
+        const animalsBase = [
+            { img: 'cat.jpg', file: 'cat.mp3' }, { img: 'Cow.jpg', file: 'Cow.mp3' },
+            { img: 'dog.jpg', file: 'dog.mp3' }, { img: 'Duck.jpg', file: 'Duck.mp3' },
+            { img: 'Lion.jpg', file: 'Lion.mp3' }, { img: 'Pig.jpg', file: 'Pig.mp3' },
+            { img: 'Rooster.jpg', file: 'Rooster.mp3' }, { img: 'Sheep.jpg', file: 'Sheep.mp3' }
+        ];
+        let currentTarget = null, audio = new Audio();
+
+        // ИСПРАВЛЕНО: Получаем текущего пользователя из общей базы
+        function getActiveUser() {
+            const currentName = localStorage.getItem('currentChild');
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            return users.find(u => u.name === currentName);
+        }
+
+        // ИСПРАВЛЕНО: Обновление баланса на экране
+        function updateCoins() {
+            const user = getActiveUser();
+            document.getElementById('coin-count').innerText = user ? user.coins : 0;
+        }
+
+        // ИСПРАВЛЕНО: Сохранение монет в общую базу
+        function saveCoinsToLocalStorage(amount) {
+            const currentName = localStorage.getItem('currentChild');
+            if (!currentName) return;
+
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const index = users.findIndex(u => u.name === currentName);
+            
+            if (index !== -1) {
+                users[index].coins += amount;
+                localStorage.setItem('gameUsers', JSON.stringify(users));
+            }
+        }
+        
+        function spawnCoin(x, y) {
+            const amount = 1;
+            saveCoinsToLocalStorage(amount); // Сразу сохраняем в базу
+
+            const coin = document.createElement('div'); coin.className = 'flying-coin'; coin.innerHTML = '🟡';
+            coin.style.left = x + 'px'; coin.style.top = y + 'px'; document.body.appendChild(coin);
+            const w = document.getElementById('wallet').getBoundingClientRect();
+            
+            setTimeout(() => { 
+                coin.style.left = w.left + 'px'; 
+                coin.style.top = w.top + 'px'; 
+                coin.style.transform = 'scale(0.5)'; 
+                coin.style.opacity = '0.5'; 
+            }, 20);
+
+            setTimeout(() => {
+                coin.remove();
+                updateCoins(); // Обновляем цифру из базы
+            }, 800);
+        }
+
+        function initGame() {
+            updateCoins();
+            const container = document.getElementById('choices'); container.innerHTML = '';
+            const round = [...animalsBase].sort(() => 0.5 - Math.random()).slice(0, 4);
+            currentTarget = round[Math.floor(Math.random() * 4)];
+            document.getElementById('sound-btn').onclick = () => { audio.src = currentTarget.file; audio.play(); };
+            round.forEach(a => {
+                const card = document.createElement('div'); card.className = 'animal-card';
+                card.innerHTML = `<img src="${a.img}" draggable="false">`;
+                card.onclick = (e) => {
+                    if (card.classList.contains('correct')) return; // Защита от повторных нажатий
+                    
+                    if (a.file === currentTarget.file) {
+                        audio.src = a.file; audio.play().catch(()=>{}); 
+                        spawnCoin(e.clientX, e.clientY);
+                        card.classList.add('correct'); 
+                        setTimeout(() => initGame(), 1200);
+                    } else { 
+                        card.style.borderColor = 'red'; 
+                        setTimeout(() => card.style.borderColor = 'white', 400); 
+                    }
+                };
+                container.appendChild(card);
+            });
+        }
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Игра: Веселый счет</title>
+    <style>
+        body {
+            margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background-color: #e3f2fd; font-family: 'Comic Sans MS', sans-serif;
+            overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+
+        .back-btn {
+            position: absolute; top: 20px; left: 20px; padding: 15px 25px;
+            background-color: #ff7043; color: white; text-decoration: none;
+            border-radius: 15px; font-weight: bold; box-shadow: 0 5px 0 #d84315; z-index: 100;
+        }
+
+        .coin-status {
+            position: absolute; top: 20px; right: 20px;
+            background: white; padding: 10px 20px; border-radius: 25px;
+            font-weight: bold; color: #f57f17; border: 3px solid #fbc02d;
+            font-size: 1.4rem; display: flex; align-items: center; gap: 8px;
+            z-index: 100; transition: transform 0.2s;
+        }
+
+        .flying-coin {
+            position: fixed; font-size: 2rem; z-index: 999; pointer-events: none;
+            transition: all 0.6s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+
+        .wallet-bump { transform: scale(1.2); }
+
+        .header { text-align: center; margin-bottom: 5px; }
+        .target-number {
+            font-size: 4.5rem; color: #1565c0; background: white;
+            width: 100px; height: 100px; display: flex; align-items: center;
+            justify-content: center; border-radius: 50%; border: 8px solid #bbdefb;
+            margin: 0 auto 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .instruction { font-size: 1.5rem; color: #0d47a1; font-weight: bold; min-height: 45px; margin-bottom: 5px; text-align: center; }
+
+        .game-area {
+            position: relative; width: 95%; max-width: 600px; height: 260px;
+            background: rgba(255,255,255,0.4); border-radius: 30px; margin-bottom: 15px;
+        }
+
+        .item { position: absolute; font-size: 4rem; cursor: pointer; transition: all 0.4s ease-in; z-index: 50; }
+
+        .basket-section { display: flex; flex-direction: column; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .basket-wrapper { width: 220px; height: 140px; transition: transform 0.2s; }
+        #basket-img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+        .check-btn { margin-top: 10px; background: #4caf50; color: white; padding: 10px 40px; border-radius: 20px; font-weight: bold; font-size: 1.5rem; box-shadow: 0 6px 0 #2e7d32; }
+
+        .shake { animation: shake 0.4s ease; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .win-anim { animation: win 0.6s ease infinite alternate; }
+        @keyframes win { from { transform: scale(1); } to { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+    <a href="../menu.html" class="back-btn">⬅ Назад</a>
+
+    <div class="coin-status" id="wallet">
+        <span>🟡</span> <span id="coin-count">0</span>
+    </div>
+
+    <div class="header">
+        <div class="target-number" id="target">3</div>
+        <div class="instruction" id="instruction">Положи в корзину</div>
+    </div>
+
+    <div class="game-area" id="area"></div>
+
+    <div class="basket-section" onclick="checkResult(event)">
+        <div class="basket-wrapper" id="basket">
+            <img src="basket-container.jpg" id="basket-img" alt="basket">
+        </div>
+        <div class="check-btn">ГОТОВО!</div>
+    </div>
+
+    <script>
+        const itemsList = ['🍎', '🍏', '🍓', '🍐', '🍊'];
+        let targetNum = 0, currentNum = 0, isWaiting = false, audioCtx = null;
+
+        // ИСПРАВЛЕНО: Получаем текущего пользователя из общего массива
+        function getActiveUser() {
+            const currentName = localStorage.getItem('currentChild');
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            return users.find(u => u.name === currentName);
+        }
+
+        // ИСПРАВЛЕНО: Обновление баланса на экране
+        function updateCoinDisplay() {
+            const user = getActiveUser();
+            document.getElementById('coin-count').innerText = user ? user.coins : 0;
+        }
+
+        // ИСПРАВЛЕНО: Зачисление монет в общий localStorage
+        function saveCoinsToLocalStorage(amount) {
+            const currentName = localStorage.getItem('currentChild');
+            if (!currentName) return;
+
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const index = users.findIndex(u => u.name === currentName);
+            
+            if (index !== -1) {
+                users[index].coins += amount;
+                localStorage.setItem('gameUsers', JSON.stringify(users));
+            }
+        }
+
+        function playSound(freq, type = 'sine', dur = 0.2, vol = 0.1) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + dur);
+            } catch(e) {}
+        }
+
+        function spawnCoins(startX, startY) {
+            const count = 5;
+            const wallet = document.getElementById('wallet');
+            const walletRect = wallet.getBoundingClientRect();
+
+            // Сохраняем монеты сразу
+            saveCoinsToLocalStorage(count);
+
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const coin = document.createElement('div');
+                    coin.className = 'flying-coin';
+                    coin.innerHTML = '🟡';
+                    coin.style.left = startX + 'px';
+                    coin.style.top = startY + 'px';
+                    document.body.appendChild(coin);
+
+                    setTimeout(() => {
+                        coin.style.left = walletRect.left + 'px';
+                        coin.style.top = walletRect.top + 'px';
+                        coin.style.transform = 'scale(0.5)';
+                        coin.style.opacity = '0';
+                    }, 50);
+
+                    setTimeout(() => {
+                        coin.remove();
+                        updateCoinDisplay();
+                        wallet.classList.add('wallet-bump');
+                        setTimeout(() => wallet.classList.remove('wallet-bump'), 150);
+                        playSound(800 + (i * 50), 'sine', 0.15, 0.05);
+                    }, 650);
+                }, i * 80); 
+            }
+        }
+
+        function initGame() {
+            updateCoinDisplay();
+            const area = document.getElementById('area');
+            const targetEl = document.getElementById('target');
+            const instr = document.getElementById('instruction');
+            area.innerHTML = '';
+            currentNum = 0; 
+            isWaiting = false;
+            targetNum = Math.floor(Math.random() * 4) + 2; 
+            targetEl.innerText = targetNum;
+            targetEl.classList.remove('win-anim');
+            instr.innerText = "Положи в корзину " + targetNum;
+            instr.style.color = "#0d47a1";
+
+            const currentEmoji = itemsList[Math.floor(Math.random() * itemsList.length)];
+            for (let i = 0; i < 9; i++) {
+                const item = document.createElement('div');
+                item.className = 'item'; 
+                item.innerHTML = currentEmoji;
+                item.style.left = Math.random() * 80 + 5 + '%';
+                item.style.top = Math.random() * 70 + 5 + '%';
+                item.style.transform = `rotate(${Math.random() * 30 - 15}deg)`;
+                item.onclick = (e) => collect(e.target);
+                area.appendChild(item);
+            }
+        }
+
+        function collect(item) {
+            if (isWaiting || item.style.opacity === "0") return;
+            
+            currentNum++;
+            item.style.opacity = "0";
+            item.style.transform = "scale(0) translateY(100px)";
+            item.style.pointerEvents = "none";
+            playSound(400 + (currentNum * 100));
+        }
+
+        function checkResult(e) {
+            if (isWaiting) return;
+            isWaiting = true;
+
+            const basket = document.getElementById('basket');
+            const instr = document.getElementById('instruction');
+            const targetEl = document.getElementById('target');
+
+            if (currentNum === targetNum) {
+                instr.innerText = "ПРАВИЛЬНО!";
+                instr.style.color = "#4caf50";
+                targetEl.classList.add('win-anim');
+                playSound(600, 'sine', 0.4);
+                setTimeout(() => spawnCoins(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight/2), 500);
+                setTimeout(initGame, 3500);
+            } else {
+                basket.classList.add('shake');
+                instr.innerText = "Ой! Попробуй еще раз!";
+                instr.style.color = "#f44336";
+                playSound(150, 'square', 0.3);
+                setTimeout(() => {
+                    basket.classList.remove('shake');
+                    initGame();
+                }, 1500);
+            }
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

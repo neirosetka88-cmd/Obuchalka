@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Игра: Пазлы</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f3e5f5; font-family: 'Comic Sans MS', sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        .back-btn { position: absolute; top: 20px; left: 20px; padding: 15px 25px; background-color: #ff7043; color: white; text-decoration: none; border-radius: 15px; font-weight: bold; box-shadow: 0 5px 0 #d84315; z-index: 100; }
+        .back-btn:active { top: 25px; box-shadow: 0 2px 0 #d84315; }
+        .coin-status { position: absolute; top: 20px; right: 20px; background: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; color: #f57f17; border: 3px solid #fbc02d; font-size: 1.4rem; display: flex; align-items: center; gap: 8px; z-index: 100; }
+        .flying-coin { position: fixed; font-size: 2rem; z-index: 999; pointer-events: none; transition: 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045); }
+        
+        h1 { color: #4a148c; font-size: 2rem; margin-bottom: 20px; text-align: center; min-height: 1.2em; }
+        .board { display: grid; grid-template-columns: repeat(2, 120px); grid-template-rows: repeat(2, 120px); gap: 5px; background: #fff; padding: 10px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .slot { width: 120px; height: 120px; background-color: #f0f0f0; border-radius: 10px; background-size: 240px 240px; }
+        .empty { border: 3px dashed #9c27b0; background: #fff; background-image: none !important; }
+        
+        #pool { display: flex; gap: 15px; justify-content: center; min-height: 110px; }
+        .piece { width: 100px; height: 100px; background-size: 200px 200px; border-radius: 15px; cursor: pointer; border: 5px solid white; box-shadow: 0 5px 10px rgba(0,0,0,0.1); transition: 0.2s; }
+        .piece:active { transform: scale(0.9); }
+        .shake { animation: shake 0.4s ease; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    </style>
+</head>
+<body>
+    <a href="../menu.html" class="back-btn">⬅ Назад</a>
+    <div class="coin-status" id="wallet">🟡 <span id="coin-count">0</span></div>
+    <h1 id="msg">Чего не хватает?</h1>
+    <div class="board" id="board"></div>
+    <div id="pool"></div>
+
+    <script>
+        const images = ['cat.jpg', 'Cow.jpg', 'dog.jpg', 'Duck.jpg', 'Lion.jpg', 'Pig.jpg', 'Rooster.jpg', 'Sheep.jpg'];
+        let audio = new Audio(), isWaiting = false, audioCtx = null;
+
+        // ИСПРАВЛЕНО: Получаем текущего пользователя из общей базы
+        function getActiveUser() {
+            const currentName = localStorage.getItem('currentChild');
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            return users.find(u => u.name === currentName);
+        }
+
+        // ИСПРАВЛЕНО: Обновление баланса
+        function updateCoins() {
+            const user = getActiveUser();
+            document.getElementById('coin-count').innerText = user ? user.coins : 0;
+        }
+
+        // ИСПРАВЛЕНО: Сохранение монет в общую базу
+        function saveCoinsToLocalStorage(amount) {
+            const currentName = localStorage.getItem('currentChild');
+            if (!currentName) return;
+            let users = JSON.parse(localStorage.getItem('gameUsers') || '[]');
+            const index = users.findIndex(u => u.name === currentName);
+            if (index !== -1) {
+                users[index].coins += amount;
+                localStorage.setItem('gameUsers', JSON.stringify(users));
+            }
+        }
+
+        function spawnCoin(x, y) {
+            const amount = 2;
+            saveCoinsToLocalStorage(amount); // Сразу сохраняем
+
+            for(let i=0; i < amount; i++) {
+                const coin = document.createElement('div'); coin.className = 'flying-coin'; coin.innerHTML = '🟡';
+                coin.style.left = x + 'px'; coin.style.top = y + 'px'; document.body.appendChild(coin);
+                const w = document.getElementById('wallet').getBoundingClientRect();
+                
+                setTimeout(() => { 
+                    coin.style.left = w.left + 'px'; 
+                    coin.style.top = w.top + 'px'; 
+                    coin.style.transform = 'scale(0.5)'; 
+                    coin.style.opacity = '0'; 
+                }, 50 + (i*150));
+
+                setTimeout(() => { 
+                    coin.remove(); 
+                    updateCoins(); 
+                }, 850);
+            }
+        }
+
+        function playSysSound(freq) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'triangle'; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function initGame() {
+            updateCoins(); isWaiting = false;
+            const b = document.getElementById('board'), p = document.getElementById('pool'), m = document.getElementById('msg');
+            b.innerHTML = ''; p.innerHTML = ''; m.innerText = "Чего не хватает?"; m.style.color = "#4a148c";
+            
+            const img = images[Math.floor(Math.random() * images.length)], empty = Math.floor(Math.random() * 4);
+            const pos = [{x:0,y:0},{x:-120,y:0},{x:0,y:-120},{x:-120,y:-120}];
+
+            pos.forEach((ps, i) => {
+                const s = document.createElement('div'); s.className = 'slot' + (i===empty?' empty':'');
+                if(i!==empty) { s.style.backgroundImage = `url(${img})`; s.style.backgroundPosition = `${ps.x}px ${ps.y}px`; }
+                else s.id = 'target';
+                b.appendChild(s);
+            });
+
+            let opts = [{i:img, p:pos[empty], c:true}];
+            let others = images.filter(im=>im!==img).sort(()=>.5-Math.random()).slice(0,3);
+            others.forEach(o => opts.push({i:o, p:pos[empty], c:false}));
+            
+            opts.sort(()=>.5-Math.random()).forEach(o => {
+                const dv = document.createElement('div'); dv.className = 'piece';
+                dv.style.backgroundImage = `url(${o.i})`; dv.style.backgroundPosition = `${o.p.x*0.83}px ${o.p.y*0.83}px`;
+                dv.onclick = (e) => {
+                    if(isWaiting) return;
+                    isWaiting = true;
+                    const t = document.getElementById('target');
+                    
+                    t.style.backgroundImage = `url(${o.i})`;
+                    t.style.backgroundPosition = `${o.p.x}px ${o.p.y}px`;
+                    t.classList.remove('empty');
+
+                    if(o.c) {
+                        m.innerText = "Правильно! Ура!"; m.style.color = "green";
+                        audio.src = o.i.replace('.jpg','.mp3'); audio.play().catch(()=>{}); 
+                        spawnCoin(e.clientX, e.clientY);
+                        setTimeout(initGame, 3000);
+                    } else {
+                        m.innerText = "Ой! Так не бывает! 😂"; m.style.color = "red";
+                        playSysSound(150);
+                        setTimeout(() => {
+                            t.style.backgroundImage = 'none';
+                            t.classList.add('empty');
+                            m.innerText = "Попробуй другой!"; m.style.color = "#4a148c";
+                            dv.style.visibility = 'hidden';
+                            isWaiting = false;
+                        }, 1500);
+                    }
+                };
+                p.appendChild(dv);
+            });
+        }
+        window.oncontextmenu = (e) => e.preventDefault();
+        initGame();
+    </script>
+</body>
+</html>
